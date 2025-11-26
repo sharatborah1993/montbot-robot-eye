@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#071122" />
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/manifest.json">
+  <title>MontBot — Robot Eye</title>
+  <style>
+    :root{--bg:#050810;--accent:#39ffb0;--muted:#7f8a95}
+    html,body{height:100%;margin:0;background:radial-gradient(ellipse at center, #071022 0%, #020310 70%);color:#e6eef6;overflow:hidden}
+    #app{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:row}
+    .eye-wrap{width:92vw;height:68vh;max-height:92vh;display:flex;align-items:center;justify-content:center}
+    svg.eye{width:100%;height:100%;max-height:100%;}
+    .pupil{transform-origin:center;transition:transform .18s linear}
+    .blink{animation:blink 4.2s ease-in-out infinite}
+    @keyframes blink{0%,6%,100%{transform:scaleY(1)}3%{transform:scaleY(0.06)}}
+    .thinking .pupil{animation:think 1s linear infinite}
+    @keyframes think{0%{transform:translateY(0)}50%{transform:translateY(-6px)}100%{transform:translateY(0)}}
+    .hud{position:fixed;right:14px;top:10%;width:280px;max-width:28vw;background:rgba(255,255,255,0.03);backdrop-filter:blur(6px);padding:12px;border-radius:12px;color:var(--muted);font-family:Inter,system-ui}
+    .status{display:flex;align-items:center;gap:10px}
+    .dot{width:12px;height:12px;border-radius:50%;background:#2f3a45}
+    .dot.listen{background:var(--accent)}
+    .dot.proc{background:#ffb86b}
+    .small{font-size:13px;color:var(--muted)}
+    @media (orientation: portrait) {
+      #app{transform:rotate(90deg);transform-origin:center center;width:100vh;height:100vw}
+      .hud{right:auto;left:10%;top:50%;transform:translateY(-50%)}
+    }
+    :fullscreen { background: #071022 }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="eye-wrap" id="eyeWrap">
+      <svg class="eye" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" id="eyeSvg" role="img" aria-label="MontBot Robot Eye">
+        <defs>
+          <radialGradient id="scl" cx="50%" cy="40%" r="70%">
+            <stop offset="0%" stop-color="#0fffc4" stop-opacity="0.95"/>
+            <stop offset="50%" stop-color="#20e8b0" stop-opacity="0.85"/>
+            <stop offset="100%" stop-color="#082b2d" stop-opacity="0.9"/>
+          </radialGradient>
+          <radialGradient id="iris" cx="50%" cy="45%" r="50%">
+            <stop offset="0%" stop-color="#a9fff0" stop-opacity="1"/>
+            <stop offset="100%" stop-color="#084b42" stop-opacity="1"/>
+          </radialGradient>
+        </defs>
+        <rect x="0" y="0" width="800" height="500" rx="80" fill="#021222" />
+        <ellipse cx="400" cy="250" rx="360" ry="180" fill="url(#scl)" opacity="0.95"/>
+        <ellipse cx="400" cy="250" rx="220" ry="110" fill="url(#iris)"/>
+        <g id="pupilGroup">
+          <circle class="pupil" id="pupil" cx="400" cy="250" r="48" fill="#041212" />
+          <circle id="pupilGlow" cx="385" cy="235" r="18" fill="#8fffd9" opacity="0.18" />
+        </g>
+        <ellipse cx="320" cy="200" rx="60" ry="28" fill="#ffffff" opacity="0.06"/>
+        <ellipse cx="455" cy="180" rx="22" ry="10" fill="#bfffe8" opacity="0.12"/>
+      </svg>
+    </div>
+
+    <div class="hud" id="hud" aria-hidden="false">
+      <div class="status"><div class="dot" id="dot"></div><div id="statustxt">Idle</div></div>
+      <div style="height:10px;margin-top:10px;background:rgba(255,255,255,0.02);border-radius:8px">
+        <i id="lvl" style="display:block;height:100%;width:0%;background:linear-gradient(90deg,#39ffb0,#3dd7ff)"></i>
+      </div>
+      <div style="margin-top:10px" class="small">Wake word: <b id="wakeWord">hey mont</b></div>
+      <div style="margin-top:8px" class="small">Tip: Add to Home screen for true fullscreen (PWA install).</div>
+    </div>
+  </div>
+
+  <script>
+    const dot = document.getElementById('dot');
+    const statustxt = document.getElementById('statustxt');
+    const pupil = document.getElementById('pupil');
+    const pupilGroup = document.getElementById('pupilGroup');
+    const wakeWordEl = document.getElementById('wakeWord');
+
+    function setStatus(s){
+      statustxt.innerText = s;
+      dot.className = 'dot '+ (s.toLowerCase().includes('listen')? 'listen' : s.toLowerCase().includes('think')? 'proc' : '');
+      if(s.toLowerCase().includes('think')){
+        pupil.classList.add('thinking');
+        pupilGroup.classList.add('thinking');
+      } else {
+        pupil.classList.remove('thinking');
+        pupilGroup.classList.remove('thinking');
+      }
+      if(s.toLowerCase().includes('listen')){
+        pupilGroup.classList.add('blink');
+      } else {
+        pupilGroup.classList.remove('blink');
+      }
+    }
+
+    let idleAnim = null;
+    function startIdle(){ stopIdle(); idleAnim = setInterval(()=>{
+      const dx = (Math.random()-0.5)*10; const dy = (Math.random()-0.5)*6;
+      pupil.setAttribute('cx', 400+dx);
+      pupil.setAttribute('cy', 250+dy);
+      document.getElementById('pupilGlow').setAttribute('cx', 385+dx);
+      document.getElementById('pupilGlow').setAttribute('cy', 235+dy);
+    }, 1200); }
+    function stopIdle(){ if(idleAnim) clearInterval(idleAnim); }
+
+    let continuousRec=null;
+    async function startWakeListener(){
+      if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
+        console.warn('SpeechRecognition not available'); setStatus('Idle'); return;
+      }
+      const C = window.SpeechRecognition || window.webkitSpeechRecognition;
+      continuousRec = new C(); continuousRec.continuous=true; continuousRec.interimResults=false; continuousRec.lang='en-US';
+      continuousRec.onstart = ()=>{ setStatus('Listening'); stopIdle(); };
+      continuousRec.onend = ()=>{ setStatus('Idle'); startIdle(); setTimeout(()=>{ try{ continuousRec.start(); }catch(e){} },500); };
+      continuousRec.onerror = ()=>{ setStatus('Idle'); startIdle(); };
+      continuousRec.onresult = (ev)=>{
+        const text = ev.results[ev.results.length-1][0].transcript.trim().toLowerCase();
+        console.log('heard',text);
+        if(text.includes(wakeWordEl.innerText)){
+          continuousRec.stop();
+          runCapture();
+        }
+      };
+      try{ continuousRec.start(); }catch(e){ console.warn(e); }
+    }
+
+    async function runCapture(){
+      setStatus('Recording...');
+      let t=0; const pulse = setInterval(()=>{ t++; const r=48+Math.sin(t/2)*8; pupil.setAttribute('r', r); if(t>8){ clearInterval(pulse); pupil.setAttribute('r',48); setStatus('Thinking...'); runThinking(); } }, 300);
+    }
+    function runThinking(){
+      setStatus('Thinking...');
+      pupilGroup.classList.add('thinking');
+      setTimeout(async ()=>{
+        pupilGroup.classList.remove('thinking');
+        setStatus('Speaking');
+        speakText('Hello, I am MontBot. How can I help you today?');
+        setTimeout(()=>{ setStatus('Idle'); startIdle(); try{ continuousRec.start(); }catch(e){} }, 2200);
+      }, 2500);
+    }
+    function speakText(t){ const u = new SpeechSynthesisUtterance(t); u.lang='en-US'; speechSynthesis.cancel(); speechSynthesis.speak(u); }
+
+    setStatus('Idle'); startIdle(); startWakeListener();
+    document.getElementById('eyeWrap').addEventListener('click', ()=>{ if(continuousRec) return; startWakeListener(); });
+  </script>
+</body>
+</html>
